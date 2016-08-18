@@ -80,15 +80,49 @@ func (s *Stream) Unsubscribe(observer Observer) {
 	}
 }
 
-type IntObserver struct{}
+func Map(obs Observable, fn func(int) int) Observable {
+	ch := make(chan int)
+	obs.Connect()
+	obs.Subscribe(
+		&IntObserver{
+			func(v int) {
+				ch <- fn(v)
+			},
+			func(err error) {
+				panic(err)
+			},
+			func() {
+				close(ch)
+			},
+		},
+	)
 
-func (ob IntObserver) OnNext(v int) {
+	return fromChan(ch)
+}
+
+type IntObserver struct {
+	onNext      func(int)
+	onError     func(error)
+	onCompleted func()
+}
+
+func (iob IntObserver) OnNext(v int) {
+	iob.onNext(v)
+}
+func (iob IntObserver) OnError(err error) {
+	iob.onError(err)
+}
+func (iob IntObserver) OnCompleted() {
+	iob.onCompleted()
+}
+
+func OnNext(v int) {
 	fmt.Println("Value", v)
 }
-func (ob IntObserver) OnError(e error) {
+func OnError(e error) {
 	fmt.Println("Error", e)
 }
-func (ob IntObserver) OnCompleted() {
+func OnCompleted() {
 	fmt.Println("Completed")
 }
 
@@ -105,7 +139,13 @@ func main() {
 	go emitItems(ch)
 
 	obs := fromChan(ch)
-	ob := IntObserver{}
+	obs = Map(obs, func(v int) int { return v + 1000 })
+
+	ob := IntObserver{
+		OnNext,
+		OnError,
+		OnCompleted,
+	}
 	obs.Subscribe(ob)
 	obs.Connect()
 
