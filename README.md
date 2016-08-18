@@ -7,4 +7,12 @@ Reactive Extensions implementation for the Go Programming Language.
 * [ ] 可控的资源消耗
 * [ ] 高效
 
+## Design
+```
+value -> observable -> observable -> observer
+channel + goroutine
+
+goroutine -> chan -> (do compute) -> chan -> observer
+```
+
 ## TODO
